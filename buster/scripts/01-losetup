@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+
+truncate -s 8G image.img
+
+parted ./image.img mklabel msdos --script
+parted ./image.img mkpart -a optimal primary 0% 256M --script
+parted ./image.img mkpart -a optimal primary 256M 100% --script
+parted ./image.img set 1 boot on --script
+
+LOOP=$(basename "$(losetup -f)")
+export LOOP
+kpartx -a image.img
+
+function _unlosetup {
+  kpartx -d image.img
+}
+_on_exit "_unlosetup"
+
+mkfs.msdos                        "/dev/mapper/${LOOP}p1"
+mkfs.ext4  -O ^metadata_csum -F   "/dev/mapper/${LOOP}p2"
+
+mount "/dev/mapper/${LOOP}p2" /mnt
+mkdir -p /mnt/{boot,dev,proc,sys}
+mount "/dev/mapper/${LOOP}p1" /mnt/boot
+
+function _unmount {
+  umount /mnt/boot
+  umount /mnt
+}
+_on_exit "_unmount"

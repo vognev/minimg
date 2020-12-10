@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+
+mount -o bind  /dev/ /mnt/dev
+mount -t proc  none  /mnt/proc
+mount -t sysfs none  /mnt/sys
+
+function _unchroot {
+    umount /mnt/dev
+    umount /mnt/proc
+    umount /mnt/sys
+}
+
+_on_exit "_unchroot"

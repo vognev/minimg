@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+find /mnt/var/cache/apt -type f -delete
+find /mnt/var/lib/apt/lists -type f -delete
+find /mnt/var/log -type f -delete
+
+dd if=/dev/zero of=/mnt/boot/zero || rm -f /mnt/boot/zero
+mount -o remount,ro "/dev/mapper/${LOOP}p2"
+zerofree "/dev/mapper/${LOOP}p2"

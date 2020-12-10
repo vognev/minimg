@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+
+DEBIAN_FRONTEND=noninteractive \
+DEBCONF_NONINTERACTIVE_SEEN=true \
+http_proxy=${http_proxy} https_proxy=${https_proxy} \
+chroot /mnt /bin/bash -seo pipefail <<-'EOS'
+  . /etc/profile
+
+  apt-get install -y linux-image-amd64 systemd-sysv openssh-server cloud-init
+  apt-get install -y sudo resolvconf python dhcpcd5 acpi-support-base python-apt
+  apt-get install -y apt-transport-https ca-certificates curl gnupg2
+
+  # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=867921
+  sed -i '/^source-directory/d' /etc/network/interfaces
+  echo 'source /etc/network/interfaces.d/*' >> /etc/network/interfaces
+
+  ln -s /lib/systemd/system/cloud-init.target /etc/systemd/system/multi-user.target.wants
+EOS
+
+DEBIAN_FRONTEND=noninteractive \
+DEBCONF_NONINTERACTIVE_SEEN=true \
+http_proxy=${http_proxy} https_proxy=${https_proxy} \
+chroot /mnt /bin/bash -seo pipefail -- "${LOOP}" <<-'EOS'
+  . /etc/profile
+
+  LOOP="$1"
+
+  echo "UUID=$(findmnt / -o UUID -n)      /     ext4 rw,relatime 0 1" >> /etc/fstab
+  echo "UUID=$(findmnt /boot -o UUID -n)  /boot vfat defaults    0 0" >> /etc/fstab
+
+  apt-get install -y grub-pc
+
+  grub-install --target=i386-pc --no-floppy "/dev/${LOOP}"
+  update-grub
+
+  sed -i "s|root=/dev/mapper/${LOOP}p2|root=UUID=$(findmnt / -o UUID -n)|" /boot/grub/grub.cfg
+EOS

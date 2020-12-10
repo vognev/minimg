@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+
+debootstrap --variant=minbase \
+ buster /mnt http://cdn-fastly.deb.debian.org/debian
+
+mkdir -p /mnt/etc/dpkg/dpkg.cfg.d
+mkdir -p /mnt/etc/apt/apt.conf.d
+
+cat > /mnt/etc/dpkg/dpkg.cfg.d/pathexclude <<EOF
+path-exclude=/usr/share/doc/*
+path-exclude=/usr/share/man/*
+path-exclude=/usr/share/info/*
+EOF
+
+find /mnt/usr/share/doc/  -type f -delete
+find /mnt/usr/share/man/  -type f -delete
+find /mnt/usr/share/info/ -type f -delete
+
+cat > /mnt/etc/apt/apt.conf.d/no-recommends-suggests <<EOF
+APT::Get::Install-Recommends "false";
+APT::Get::Install-Suggests "false";
+EOF

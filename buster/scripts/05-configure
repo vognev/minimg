@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e -o pipefail
+
+DEBIAN_FRONTEND=noninteractive \
+DEBCONF_NONINTERACTIVE_SEEN=true \
+http_proxy=${http_proxy} https_proxy=${https_proxy} \
+chroot /mnt /bin/bash -seo pipefail -- "${LOOP}" <<-'EOS'
+  . /etc/profile
+
+  systemctl enable ssh
+  systemctl enable acpid
+
+  useradd -m debian
+  chsh -s /bin/bash debian
+EOS
